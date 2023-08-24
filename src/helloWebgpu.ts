@@ -11,9 +11,9 @@ async function initWebGPU() {
             console.log(value)
         })
         document.body.innerHTML = '<h1>Hello WebGPU</h1>'
-        let i:keyof GPUSupportedLimits
-        for(i in adapter.limits)
-            document.body.innerHTML += `<p>${i}:${adapter.limits[i]}</p>`
+        let k:keyof GPUSupportedLimits // user defined type, i must be one of GPUSupportedLimits' key
+        for(k in adapter.limits)
+            document.body.innerHTML += `<p>${k}:${adapter.limits[k]}</p>`
     }catch(error:any){
         document.body.innerHTML = `<h1>${error.message}</h1>`
     }

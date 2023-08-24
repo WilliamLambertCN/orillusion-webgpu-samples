@@ -11,22 +11,31 @@ async function initWebGPU(canvas: HTMLCanvasElement) {
     })
     if (!adapter)
         throw new Error('No Adapter Found')
-    const device = await adapter.requestDevice()
+    console.log(adapter)
+    const device = await adapter.requestDevice({
+        requiredFeatures: ['texture-compression-bc'],
+        // requiredFeatures: ['texture-compression-etc2', 'texture-compression-bc'],
+        requiredLimits: {
+        maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,}
+    }) // actually create the device
+    console.log(device)
+
     const context = canvas.getContext('webgpu') as GPUCanvasContext
-    const format = navigator.gpu.getPreferredCanvasFormat()
+    const format = navigator.gpu.getPreferredCanvasFormat() // get the preferred format of the canvas. 
     const devicePixelRatio = window.devicePixelRatio || 1
     canvas.width = canvas.clientWidth * devicePixelRatio
     canvas.height = canvas.clientHeight * devicePixelRatio
     const size = {width: canvas.width, height: canvas.height}
     context.configure({
         // json specific format when key and value are the same
-        device, format,
+        device, // when key and value are the same, just use the key
+        format,
         // prevent chrome warning
         alphaMode: 'opaque'
     })
     return {device, context, format, size}
 }
-// create a simple pipiline
+// create a simple pipiline, 管线就是说，GPU要做什么事情，包括顶点着色器，片段着色器，图元类型等等
 async function initPipeline(device: GPUDevice, format: GPUTextureFormat): Promise<GPURenderPipeline> {
     const descriptor: GPURenderPipelineDescriptor = {
         layout: 'auto',
@@ -53,7 +62,8 @@ async function initPipeline(device: GPUDevice, format: GPUTextureFormat): Promis
     }
     return await device.createRenderPipelineAsync(descriptor)
 }
-// create & submit device commands
+// create & submit device commands, it's a process for GPU to execute
+// 这里使用了GPUCommandEncoder来创建命令，然后使用GPUQueue来提交命令，实现管线的执行
 function draw(device: GPUDevice, context: GPUCanvasContext, pipeline: GPURenderPipeline) {
     const commandEncoder = device.createCommandEncoder()
     const view = context.getCurrentTexture().createView()
@@ -71,9 +81,9 @@ function draw(device: GPUDevice, context: GPUCanvasContext, pipeline: GPURenderP
     passEncoder.setPipeline(pipeline)
     // 3 vertex form a triangle
     passEncoder.draw(3)
-    passEncoder.end()
+    passEncoder.end() //end the subpass
     // webgpu run in a separate process, all the commands will be executed after submit
-    device.queue.submit([commandEncoder.finish()])
+    device.queue.submit([commandEncoder.finish()]) // actually execute the commands
 }
 
 async function run(){
